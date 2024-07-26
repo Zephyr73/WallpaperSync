@@ -1,0 +1,2 @@
+colorthief
+openrgb-client
