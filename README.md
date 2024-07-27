@@ -2,6 +2,7 @@
 
 **WallpaperSync** is a Python script that dynamically adjusts the color of connected RGB LED devices based on your desktop wallpaper using [OpenRGB](https://openrgb.org/). The script continuously monitors the system wallpaper for changes and updates the LED colors to match the most prominent color in the wallpaper. This ensures a visually cohesive environment that aligns with your desktop's aesthetics.
 
+[Here is a demo on how it works](https://www.reddit.com/r/pcmasterrace/comments/1edjz55/made_this_script_that_changes_rgb_color_depending/)
 ## Features
 
 - **Real-time Monitoring:** Automatically detects changes to the wallpaper and updates LED colors accordingly.
