@@ -1,2 +1,3 @@
 colorthief
 openrgb-client
+watchdogs
