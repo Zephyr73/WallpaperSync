@@ -24,7 +24,7 @@ To run WallpaperSync, you'll need to install the following Python libraries:
 You can install these dependencies using `pip`. Here's a command to install all necessary packages:
 
 ```sh
-pip install colorthief openrgb watchdog
+pip install colorthief openrgb-python watchdog
 ```
 
 Clone this repository:
