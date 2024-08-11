@@ -36,9 +36,9 @@ Clone this repository:
 1. Ensure you have RGB LED devices connected and the OpenRGB server running on localhost port `6742`.
 2. Run the script
 ```sh
-python WallpaperSync.py
+run.bat
 ```
-3. The script will start monitoring for wallpaper changes and updating LED colors.
+3. The script will create a venv folder which will include all the required libraries from `requirements.txt`. It will then start monitoring for wallpaper changes and updating LED colors.
 
 ## Notes
 - Permissions: You may need to run the script with elevated privileges to access the `TranscodedWallpaper` file due to system protection.
