@@ -3,6 +3,8 @@ import shutil
 import colorsys
 import math
 import time
+import argparse
+import json
 from typing import Tuple, List
 from colorthief import ColorThief
 from openrgb import OpenRGBClient
@@ -50,6 +52,11 @@ def check_palette(palette: List[Tuple[int, int, int]], tolerance: float = 10.0, 
     return 'normal'
 
 
+def accent_color(palette: List[Tuple[int, int, int]]) -> Tuple[int, int, int]:
+    sorted_rgb = sorted(palette, key=lambda x: get_saturation(x) * (1 - get_brightness(x)), reverse=True)
+    return adjust_saturation_vibrance(sorted_rgb[0])
+
+
 def process_wallpaper(path_to_wallpaper: str) -> Tuple[List[Tuple[int, int, int]], Tuple[int, int, int]]:
     color_thief = ColorThief(path_to_wallpaper)
     palette = color_thief.get_palette(color_count=6)
@@ -62,9 +69,7 @@ def process_wallpaper(path_to_wallpaper: str) -> Tuple[List[Tuple[int, int, int]
         most_saturated_color = max(filtered_palette, key=get_saturation)
         adjusted_rgb1 = adjust_saturation_vibrance(most_saturated_color)
     else:
-        sorted_rgb = sorted(filtered_palette, key=lambda x: get_saturation(x) * (1 - get_brightness(x)),
-                            reverse=True)
-        adjusted_rgb1 = adjust_saturation_vibrance(sorted_rgb[0])
+        adjusted_rgb1 = accent_color(filtered_palette)
 
     return filtered_palette, adjusted_rgb1
 
@@ -85,8 +90,8 @@ def fade_color_transition(client: OpenRGBClient, target_color: RGBColor, duratio
         time.sleep(duration / steps)
 
 
-def configure_leds(adjusted_rgb1: Tuple[int, int, int]):
-    client = OpenRGBClient('localhost', 6742, 'Wal.py')
+def configure_leds(adjusted_rgb1: Tuple[int, int, int], ip: str, port: int):
+    client = OpenRGBClient(ip, port, 'Wal.py')
     client.connect()
 
     target_color = RGBColor(*adjusted_rgb1)
@@ -94,6 +99,9 @@ def configure_leds(adjusted_rgb1: Tuple[int, int, int]):
     print("Starting fade effect...")
     fade_color_transition(client, target_color)
     print("Color transition completed.")
+
+    # Save configuration after successful connection
+    save_config(ip, port)
 
     print("Monitoring wallpaper changes...")
     client.disconnect()
@@ -120,10 +128,12 @@ def print_adjusted_color(color: Tuple[int, int, int]):
 
 
 class WallpaperHandler(FileSystemEventHandler):
-    def __init__(self, original_path: str, local_path: str):
+    def __init__(self, original_path: str, local_path: str, ip: str, port: int):
         self.original_path = original_path
         self.local_path = local_path
         self.last_modified_time = None
+        self.ip = ip
+        self.port = port
 
     def on_modified(self, event):
         if event.src_path == self.original_path:
@@ -139,14 +149,46 @@ class WallpaperHandler(FileSystemEventHandler):
                     print_palette(filtered_palette)  # Print palette to terminal
                     print_adjusted_color(adjusted_rgb1)  # Print adjusted color to terminal
 
-                    configure_leds(adjusted_rgb1)
+                    configure_leds(adjusted_rgb1, self.ip, self.port)
                     self.last_modified_time = current_modified_time
 
             except PermissionError:
                 print("Permission denied: Unable to access or copy the wallpaper file.")
 
 
+def load_config(config_file: str) -> Tuple[str, int]:
+    """Load IP and port from a JSON configuration file."""
+    if os.path.isfile(config_file):
+        with open(config_file, 'r') as file:
+            config = json.load(file)
+            return config.get('ip', 'localhost'), config.get('port', 6742)
+    return 'localhost', 6742
+
+
+def save_config(ip: str, port: int):
+    """Save IP and port to a JSON configuration file."""
+    config = {
+        'ip': ip,
+        'port': port
+    }
+    with open('config.json', 'w') as file:
+        json.dump(config, file, indent=4)
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Sync wallpaper colors with LED lights.")
+    parser.add_argument('--ip', type=str, help='The server IP address')
+    parser.add_argument('--port', type=int, help='The server port number')
+    parser.add_argument('--config', type=str, help='Path to the JSON configuration file')
+    
+    args = parser.parse_args()
+
+    if args.config:
+        ip, port = load_config(args.config)
+    else:
+        ip = args.ip if args.ip else 'localhost'
+        port = args.port if args.port else 6742
+
     appdata = os.getenv('APPDATA')
     if not appdata:
         print("APPDATA environment variable is not set.")
@@ -162,7 +204,7 @@ def main():
 
     print("Monitoring wallpaper changes...")
 
-    event_handler = WallpaperHandler(original_path, path_to_wallpaper)
+    event_handler = WallpaperHandler(original_path, path_to_wallpaper, ip, port)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(original_path), recursive=False)
     observer.start()
