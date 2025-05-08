@@ -4,7 +4,6 @@ import colorsys
 import math
 import time
 import argparse
-import json
 from typing import Tuple, List
 from colorthief import ColorThief
 from openrgb import OpenRGBClient
@@ -90,21 +89,6 @@ def fade_color_transition(client: OpenRGBClient, target_color: RGBColor, duratio
         time.sleep(duration / steps)
 
 
-def configure_leds(adjusted_rgb1: Tuple[int, int, int], ip: str, port: int):
-    client = OpenRGBClient(ip, port, 'Wal.py')
-    client.connect()
-
-    target_color = RGBColor(*adjusted_rgb1)
-
-    print("Starting fade effect...")
-    fade_color_transition(client, target_color)
-    print("Color transition completed.")
-
-    # Save configuration after successful connection
-    save_config(ip, port)
-
-    print("Monitoring wallpaper changes...")
-    client.disconnect()
 
 
 def print_palette(palette: List[Tuple[int, int, int]]):
@@ -126,6 +110,18 @@ def print_adjusted_color(color: Tuple[int, int, int]):
     print("Adjusted Color:")
     print(f"\033[48;2;{r};{g};{b}m     \033[0m")  # Display block of color
 
+def configure_leds(adjusted_rgb1: Tuple[int, int, int], ip: str, port: int):
+    client = OpenRGBClient(ip, port, 'Wal.py')
+    client.connect()
+
+    target_color = RGBColor(*adjusted_rgb1)
+
+    print("Starting fade effect...")
+    fade_color_transition(client, target_color)
+    print("Color transition completed. \n")
+
+    print("Monitoring wallpaper changes...")
+    client.disconnect()
 
 class WallpaperHandler(FileSystemEventHandler):
     def __init__(self, original_path: str, local_path: str, ip: str, port: int):
@@ -156,25 +152,6 @@ class WallpaperHandler(FileSystemEventHandler):
                 print("Permission denied: Unable to access or copy the wallpaper file.")
 
 
-def load_config(config_file: str) -> Tuple[str, int]:
-    """Load IP and port from a JSON configuration file."""
-    if os.path.isfile(config_file):
-        with open(config_file, 'r') as file:
-            config = json.load(file)
-            return config.get('ip', 'localhost'), config.get('port', 6742)
-    return 'localhost', 6742
-
-
-def save_config(ip: str, port: int):
-    """Save IP and port to a JSON configuration file."""
-    config = {
-        'ip': ip,
-        'port': port
-    }
-    with open('config.json', 'w') as file:
-        json.dump(config, file, indent=4)
-
-
 def main():
     parser = argparse.ArgumentParser(description="Sync wallpaper colors with LED lights.")
     parser.add_argument('--ip', type=str, help='The server IP address')
@@ -183,11 +160,8 @@ def main():
     
     args = parser.parse_args()
 
-    if args.config:
-        ip, port = load_config(args.config)
-    else:
-        ip = args.ip if args.ip else 'localhost'
-        port = args.port if args.port else 6742
+    ip = args.ip if args.ip else 'localhost'
+    port = args.port if args.port else 6742
 
     appdata = os.getenv('APPDATA')
     if not appdata:

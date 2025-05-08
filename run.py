@@ -42,7 +42,7 @@ def main(ip: str, port: int):
     """Main function to run sync.py with custom server IP and port."""
     while True:
         if connect_to_openrgb(ip, port):
-            print("Connected to OpenRGB SDK")
+            print("Valid connection. Saving configuration...")
             # Save configuration only if the connection is successful
             save_config(ip, port, CONFIG_FILE)
             break
